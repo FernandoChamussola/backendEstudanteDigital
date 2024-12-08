@@ -19,7 +19,7 @@ const db = mysql2.createConnection({
     ssl: {
         rejectUnauthorized: false // Permite conexão sem certificado
     } 
-});
+}); 
 
 db.connect((err) => {
     if (err) {
