@@ -1,49 +1,50 @@
 import express from "express";
-import mysql2 from "mysql2";
-import dotenv from 'dotenv';
+import pkg from 'pg';
+ // Biblioteca para PostgreSQL
+import dotenv from "dotenv";
 
 const app = express();
-
+const { Pool } = pkg;
 dotenv.config();
 
 const port = process.env.PORT || 3001;
 
-const db = mysql2.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.PORT, // Importante adicionar porta
-    connectTimeout: 30000,
-    socketPath: null,
+// Configuração da conexão com PostgreSQL
+const db = new Pool({
+    connectionString: process.env.DATABASE_URL,
     ssl: {
-        rejectUnauthorized: false // Permite conexão sem certificado
-    } 
-}); 
+        rejectUnauthorized: false
+    }
+});
 
-db.connect((err) => {
+
+// Teste de conexão com o banco de dados
+db.connect((err, client, release) => {
     if (err) {
-        console.error('Erro ao conectar ao banco de dados:', err);
+        console.error("Erro ao conectar ao banco de dados:", err);
         return;
     }
-    console.log('Conectado ao banco de dados MySQL ');
+    console.log("Conectado ao banco de dados PostgreSQL");
+    release(); // Libera o cliente
 });
 
 app.get("/", (req, res) => {
     res.send("Hello World!");
 });
 
-app.get("/tables", (req, res) => {
-    db.query("SHOW TABLES", (err, rows) => {
-        if (err) {
-            console.error('Erro ao executar query:', err);
-            res.status(500).send({ error: 'Erro ao executar query' });
-            return;
-        }
-        res.send(rows);
-    });
-})
+// Endpoint para listar tabelas do banco de dados
+app.get("/tables", async (req, res) => {
+    try {
+        const result = await db.query(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
+        );
+        res.send(result.rows);
+    } catch (err) {
+        console.error("Erro ao executar query:", err);
+        res.status(500).send({ error: "Erro ao executar query" });
+    }
+});
 
 app.listen(port, () => {
     console.log("Server is running on port " + port);
-})
+});
