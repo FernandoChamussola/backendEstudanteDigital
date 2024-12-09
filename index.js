@@ -40,7 +40,7 @@ app.get("/tables", async (req, res) => {
         );
         res.send(result.rows);
     } catch (err) {
-        console.error("Erro ao executar query:", err);
+        console.error("Erro ao executar query: ", err);
         res.status(500).send({ error: "Erro ao executar query" });
     }
 });
