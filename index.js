@@ -45,6 +45,26 @@ app.get("/tables", async (req, res) => {
     }
 });
 
+app.post('/cadastro', (req, res) => {
+    try {
+        const { nome, email, senha, data_nascimento, telefone, perfil } = req.body;
+        const query = 'INSERT INTO usuarios (nome, email, senha, data_nascimento, telefone, perfil) VALUES ($1, $2, $3, $4, $5, $6)';
+        const values = [nome, email, senha, data_nascimento, telefone, perfil];
+        db.query(query, values, (err, result) => {
+            if (err) {
+                console.error('Erro ao cadastrar', err);
+                res.status(500).send({ error: 'Erro ao cadastrar' });
+            } else {
+                console.log('Cadastrado com sucesso');
+                res.status(201).send({ message: 'Cadastrado com sucesso' });
+            }
+        });
+    } catch (err) {
+        console.error('Erro ao cadastrar', err);
+        res.status(500).send({ error: 'Erro ao cadastrar' });
+    }
+});
+
 app.listen(port, () => {
     console.log("Server is running on port " + port);
 });
