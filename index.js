@@ -4,6 +4,7 @@ import pkg from 'pg';
 import dotenv from "dotenv";
 
 const app = express();
+express.json();
 const { Pool } = pkg;
 dotenv.config();
 
