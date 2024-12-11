@@ -1,7 +1,7 @@
 import express from "express";
-import pkg from 'pg';
- // Biblioteca para PostgreSQL
+import pkg from 'pg'; // Biblioteca para PostgreSQL
 import dotenv from "dotenv";
+import jwt from "jsonwebtoken"; // Biblioteca para JWT
 
 const app = express();
 app.use(express.json());
@@ -9,6 +9,7 @@ const { Pool } = pkg;
 dotenv.config();
 
 const port = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET || "sua-chave-secreta"; 
 
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "https://estudantedigital.netlify.app");
@@ -23,7 +24,6 @@ app.options('*', (req, res) => {
     res.sendStatus(200); // Responde OK ao preflight
 });
 
-
 // Configuração da conexão com PostgreSQL
 const db = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -31,7 +31,6 @@ const db = new Pool({
         rejectUnauthorized: false
     }
 });
-
 
 // Teste de conexão com o banco de dados
 db.connect((err, client, release) => {
@@ -43,41 +42,53 @@ db.connect((err, client, release) => {
     release(); // Libera o cliente
 });
 
-app.get("/", (req, res) => {
-    res.send("Hello World!");
-});
+// Rota de Login
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).send({ error: "Email e senha são obrigatórios" });
+    }
 
-// Endpoint para listar tabelas do banco de dados
-app.get("/tables", async (req, res) => {
     try {
-        const result = await db.query(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
-        );
-        res.send(result.rows);
+        const query = 'SELECT * FROM usuarios WHERE email = $1 AND senha = $2';
+        const values = [email, password];
+        const result = await db.query(query, values);
+
+        if (result.rows.length === 0) {
+            return res.status(401).send({ error: "Credenciais inválidas" });
+        }
+
+        const user = result.rows[0];
+        const token = jwt.sign({ id: user.id, email: user.email, perfil: user.perfil }, JWT_SECRET, { expiresIn: "1h" });
+
+        res.status(200).send({ message: "Login bem-sucedido", token });
     } catch (err) {
-        console.error("Erro ao executar query: ", err);
-        res.status(500).send({ error: "Erro ao executar query" });
+        console.error("Erro ao processar login:", err);
+        res.status(500).send({ error: "Erro ao processar login" });
     }
 });
 
-app.post('/cadastro', (req, res) => {
-    try {
-        const { nome, email, senha, data_nascimento, telefone, perfil } = req.body;
-        const query = 'INSERT INTO usuarios (nome, email, senha, data_nascimento, telefone, perfil) VALUES ($1, $2, $3, $4, $5, $6)';
-        const values = [nome, email, senha, data_nascimento, telefone, perfil];
-        db.query(query, values, (err, result) => {
-            if (err) {
-                console.error('Erro ao cadastrar', err);
-                res.status(500).send({ error: 'Erro ao cadastrar' });
-            } else {
-                console.log('Cadastrado com sucesso');
-                res.status(201).send({ message: 'Cadastrado com sucesso' });
-            }
-        });
-    } catch (err) {
-        console.error('Erro ao cadastrar', err);
-        res.status(500).send({ error: 'Erro ao cadastrar' });
+// Middleware para validar o token JWT
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).send({ error: "Token não fornecido" });
     }
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).send({ error: "Token inválido ou expirado" });
+        }
+        req.user = user; // Adiciona o usuário ao request
+        next();
+    });
+};
+
+// Exemplo de rota protegida
+app.get('/perfil', authenticateToken, (req, res) => {
+    res.status(200).send({ message: "Acesso autorizado", user: req.user });
 });
 
 app.listen(port, () => {
