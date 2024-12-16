@@ -7,6 +7,8 @@ import path from "path";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import { fileURLToPath } from 'url';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+const genAI = new GoogleGenerativeAI('AIzaSyBOWsZpuvev-m2bYpjMRs0g_P8VnWVqq5Q');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +53,54 @@ db.connect((err, client, release) => {
     console.log("Conectado ao banco de dados PostgreSQL");
     release(); // Libera o cliente
 });
+
+function prompt(dados) {
+  return `
+Crie um JSON no seguinte formato, preenchendo os campos com informações acadêmicas relevantes e bem desenvolvidas. O campo "tema" já está preenchido com a informação fornecida, e os demais campos devem ser completados com informações detalhadas e consistentes para compor um trabalho acadêmico.
+
+IMPORTANTE:
+- O campo **"desenvolvimento"** deve conter o texto mais extenso, com várias ideias e detalhes relacionados ao tema, incluindo análises, exemplos práticos, argumentos teóricos e explicações aprofundadas subtemas relevantes dentro do tema os subtemas obrigatorios a conter sao ${dados.subtemas}.
+- Responda SOMENTE com o JSON, sem explicações ou textos adicionais.
+- Certifique-se de que o JSON esteja bem formatado.
+
+Estrutura do JSON:
+{
+  "tema": "${dados.tema}",
+  "objetivo_geral": "",
+  "objetivo_especifico_1": "",
+  "objetivo_especifico_2": "",
+  "objetivo_especifico_3": "",
+  "introdução": "",
+  "desenvolvimento": "",
+  "conclusao": "",
+  "referencias": ""
+}
+
+Campos:
+- "tema": já preenchido com "${dados.tema}".
+- "objetivo_geral": descreva o objetivo geral do trabalho relacionado ao tema.
+- "objetivo_especifico_1", "objetivo_especifico_2", "objetivo_especifico_3": apresente objetivos específicos que complementem o objetivo geral.
+- "introdução": forneça uma introdução detalhada sobre o tema.
+- **"desenvolvimento"**: ESTE É O CAMPO MAIS IMPORTANTE. Forneça um texto longo e detalhado, com explicações, exemplos, dados, e argumentações completas para desenvolver o tema de forma robusta.
+- "conclusao": escreva uma conclusão baseada no desenvolvimento.
+- "referencias": inclua referências acadêmicas ou fictícias no formato ABNT.
+
+Exemplo de retorno esperado (preencha TODOS os campos com informações relevantes e o "desenvolvimento" de forma longa):
+{
+  "tema": "${dados.tema}",
+  "objetivo_geral": "Exemplo...",
+  "objetivo_especifico_1": "Exemplo...",
+  "objetivo_especifico_2": "Exemplo...",
+  "objetivo_especifico_3": "Exemplo...",
+  "introdução": "Exemplo...",
+  "desenvolvimento": "Exemplo longo e detalhado sobre o tema...",
+  "conclusao": "Exemplo...",
+  "referencias": "Exemplo..."
+}
+
+Responda somente com o JSON conforme especificado, sem nenhuma explicação ou comentários adicionais.`;
+}
+
 
 // Rota de Login
 app.post('/login', async (req, res) => {
@@ -97,14 +147,17 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Exemplo de rota protegida
-app.get('/perfil', authenticateToken, (req, res) => {
-    res.status(200).send({ message: "Acesso autorizado", user: req.user });
-});
-
-app.post("/gerar-documento",authenticateToken,(req, res) => {
-    const dados = req.body; // Dados enviados no corpo da requisição
-
+app.post("/gerar-documento", async (req, res) => {
     try {
+        const dados = req.body; // Dados enviados no corpo da requisição
+        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+
+        const prompts = prompt(dados);
+        const result = await model.generateContent(prompts);
+        const response = result.response;
+        const conteudo = response.text();
+        const conteudoJson = JSON.parse(conteudo);
+
         // Caminho para o modelo
         const caminhoModelo = path.join(__dirname, "modelo.docx");
 
@@ -121,7 +174,7 @@ app.post("/gerar-documento",authenticateToken,(req, res) => {
         });
 
         // Adicione os dados ao modelo
-        doc.setData(dados);
+        doc.setData(conteudoJson);
 
         // Tente compilar e renderizar o documento
         doc.render();
@@ -132,28 +185,20 @@ app.post("/gerar-documento",authenticateToken,(req, res) => {
             compression: "DEFLATE",
         });
 
-        // Caminho para salvar o documento gerado
-        const caminhoDocumento = path.join(__dirname, "documento-gerado.docx");
-
-        // Salve o documento gerado
-        fs.writeFileSync(caminhoDocumento, documentoBuffer);
-
         // Envie o arquivo gerado como resposta
         res.set({
             "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "Content-Disposition": `attachment; filename=documento-gerado.docx`,
         });
+        
         res.send(documentoBuffer);
-        fs.unlink(caminhoDocumento, (erro) => {
-            if (erro) {
-              console.error('Erro ao apagar o arquivo:', erro);
-            } else {
-              console.log('Documento apagado do servidor.');
-            }
-        });
-    } catch (erro) {
-        console.error("Erro ao gerar documento:", erro);
-        res.status(500).send("Erro ao gerar o documento");
+
+    } catch (error) {
+        console.error("Erro ao gerar conteúdo:", error);
+        // Only send an error response if headers haven't been sent already
+        if (!res.headersSent) {
+            res.status(500).send({ error: "Erro ao gerar conteúdo" });
+        }
     }
 });
 
