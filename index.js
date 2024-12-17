@@ -102,6 +102,12 @@ Exemplo de retorno esperado (preencha TODOS os campos com informações relevant
 Responda somente com o JSON conforme especificado, sem nenhuma explicação ou comentários adicionais.`;
 }
 
+
+function atualizaUltimoLogin(userId) {
+    const sql = "update usuarios set data_ultima_login = now() where id = ?";
+    db.query(sql, [userId]);
+}
+
 // Rota de Login
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
@@ -120,8 +126,9 @@ app.post('/login', async (req, res) => {
 
         const user = result.rows[0];
         const token = jwt.sign({ id: user.id, email: user.email, perfil: user.perfil }, JWT_SECRET, { expiresIn: "1h" });
-
+        atualizaUltimoLogin(user.id);
         res.status(200).send({ message: "Login bem-sucedido", token });
+
     } catch (err) {
         console.error("Erro ao processar login:", err);
         res.status(500).send({ error: "Erro ao processar login" });
@@ -203,8 +210,8 @@ app.post("/gerar-documento", async (req, res) => {
 });
 
 app.get("/perfil", authenticateToken, (req, res) => {
-    const { id, email, perfil , pagante } = req.user;
-    res.json({ id, email, perfil , pagante });
+    const { id, email, perfil , pagante , data_ultima_login , creditos} = req.user;
+    res.json({ id, email, perfil , pagante , data_ultima_login , creditos});
 });
 
 
