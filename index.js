@@ -102,11 +102,6 @@ Exemplo de retorno esperado (preencha TODOS os campos com informações relevant
 Responda somente com o JSON conforme especificado, sem nenhuma explicação ou comentários adicionais.`;
 }
 
-
-
-
-
-
 // Rota de Login
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
