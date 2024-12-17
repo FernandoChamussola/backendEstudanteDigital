@@ -218,5 +218,5 @@ app.get("/perfil", authenticateToken, (req, res) => {
 
 
 app.listen(port, () => {
-    console.log("Server rodando na porta " + port);
+    console.log("Server rodando na porta: " + port);
 });
