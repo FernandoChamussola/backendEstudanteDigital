@@ -92,7 +92,7 @@ Exemplo de retorno esperado (preencha TODOS os campos com informações relevant
   "objetivo_especifico_1": "Exemplo...",
   "objetivo_especifico_2": "Exemplo...",
   "objetivo_especifico_3": "Exemplo...",
-  "introdução": "Exemplo...",
+  "introducao": "Exemplo...",
   "desenvolvimento": "Exemplo longo e detalhado sobre o tema...",
   "conclusao": "Exemplo...",
   "referencias": "Exemplo..."
