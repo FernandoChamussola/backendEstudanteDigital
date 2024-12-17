@@ -211,6 +211,11 @@ app.post("/gerar-documento", async (req, res) => {
     }
 });
 
+app.get("/perfil", authenticateToken, (req, res) => {
+    const { id, email, perfil } = req.user;
+    res.json({ id, email, perfil });
+});
+
 
 app.listen(port, () => {
     console.log("Server rodando na porta " + port);
