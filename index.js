@@ -103,10 +103,7 @@ Responda somente com o JSON conforme especificado, sem nenhuma explicação ou c
 }
 
 
-function atualizaUltimoLogin(userId) {
-    const sql = "update usuarios set data_ultima_login = now() where id = ?";
-    db.query(sql, [userId]);
-}
+
 
 // Rota de Login
 app.post('/login', async (req, res) => {
@@ -126,7 +123,6 @@ app.post('/login', async (req, res) => {
 
         const user = result.rows[0];
         const token = jwt.sign({ id: user.id, email: user.email, perfil: user.perfil }, JWT_SECRET, { expiresIn: "1h" });
-        atualizaUltimoLogin(user.id);
         res.status(200).send({ message: "Login bem-sucedido", token });
 
     } catch (err) {
