@@ -102,11 +102,7 @@ Responda somente com o JSON conforme especificado, sem nenhuma explicação ou c
 }
 
 
-const limparFormato = (texto) => {
-    return texto
-        .replace(/\*\*/g, '') // Remove os asteriscos duplos (**)
-        .replace(/\$/g, '');  // Remove o símbolo de cifrão ($)
-};
+
 
 
 
@@ -164,8 +160,7 @@ app.post("/gerar-documento", async (req, res) => {
         const result = await model.generateContent(prompts);
         const response = result.response;
         const conteudo = response.text();
-        const textoLimpo = limparFormato(conteudo);
-        const conteudoJson = JSON.parse(textoLimpo);
+        const conteudoJson = JSON.parse(conteudo);
 
         // Caminho para o modelo
         const caminhoModelo = path.join(__dirname, "modelo.docx");
