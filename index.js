@@ -221,6 +221,20 @@ app.get("/perfil", authenticateToken, (req, res) => {
     res.json({ id, email, perfil , pagante , data_ultima_login , creditos});
 });
 
+app.post('/creditos' , (req,res) => {
+    const id = req.body.id;
+    const sql = "UPDATE usuarios SET creditos = creditos + 1 WHERE id = $1";
+    const values = [id];
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            console.error("Erro ao adicionar credito:", err);
+            res.status(500).send({ error: "Erro ao adicionar credito" });
+        } else {
+            res.status(200).send({ message: "Credito adicionado com sucesso" });
+        }
+    })
+})
+
 
 app.listen(port, () => {
     console.log("Server rodando na porta: " + port);
