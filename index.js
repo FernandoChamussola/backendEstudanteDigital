@@ -221,20 +221,32 @@ app.get("/perfil", authenticateToken, (req, res) => {
     res.json({ id, email, perfil , pagante , data_ultima_login , creditos});
 });
 
-app.post('/creditos' , (req,res) => {
+app.post('/creditos', (req, res) => {
     const id = req.body.id;
     const sql = "UPDATE usuarios SET creditos = creditos + 1 WHERE id = $1";
     const values = [id];
+    
+    // Add logging to diagnose the issue
+    console.log('Received ID:', id);
+    console.log('SQL Query:', sql);
+    console.log('Values:', values);
+  
     db.query(sql, values, (err, result) => {
-        if (err) {
-            console.error("Erro ao adicionar credito:", err);
-            res.status(500).send({ error: "Erro ao adicionar credito" });
+      if (err) {
+        console.error("Erro ao adicionar credito:", err);
+        res.status(500).send({ error: "Erro ao adicionar credito" });
+      } else {
+        // Check if any rows were actually updated
+        console.log('Rows affected:', result.rowCount);
+        if (result.rowCount === 0) {
+          console.warn('No rows were updated. Check if the ID exists.');
+          res.status(404).send({ error: "Usuário não encontrado" });
         } else {
-            res.status(200).send({ message: "Credito adicionado com sucesso" });
+          res.status(200).send({ message: "Credito adicionado com sucesso" });
         }
-    })
-})
-
+      }
+    });
+  });
 
 app.listen(port, () => {
     console.log("Server rodando na porta: " + port);
