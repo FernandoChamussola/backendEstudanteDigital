@@ -242,11 +242,12 @@ app.post('/creditos', (req, res) => {
           console.warn('No rows were updated. Check if the ID exists.');
           res.status(404).send({ error: "Usuário não encontrado" });
         } else {
-          res.status(200).send({ message: "Credito adicionado com sucesso" });
+          res.status(200).send({ message: "Credito adicionado com sucesso no banco" });
         }
       }
     });
   });
+
 
 app.listen(port, () => {
     console.log("Server rodando na porta: " + port);
