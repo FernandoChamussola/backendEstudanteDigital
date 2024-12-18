@@ -103,7 +103,18 @@ Responda somente com o JSON conforme especificado, sem nenhuma explicação ou c
 }
 
 
-
+app.post("/cadastro", (req, res) => {
+    const sql = "insert into usuarios(nome,email,senha,data_nascimento,telefone,perfil) values($1,$2,$3,$4,$5,$6)";
+    const values = [req.body.nome, req.body.email, req.body.senha, req.body.data_nascimento, req.body.telefone, req.body.perfil];
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            console.error("Erro ao cadastrar:", err);
+            res.status(500).send({ error: "Erro ao cadastrar" });
+        } else {
+            res.status(200).send({ message: "Cadastro realizado com sucesso" });
+        }
+    });
+})
 
 // Rota de Login
 app.post('/login', async (req, res) => {
